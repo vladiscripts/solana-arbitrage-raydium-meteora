@@ -1,0 +1,10 @@
+version: '3'
+services:
+  app:
+    build: .
+    container_name: meteora-arbitrage-core
+    ports:
+      - "8000:80"
+    volumes:
+      - ./db:/usr/src/main/db  # Local database volume mapping
+    restart: unless-stopped
