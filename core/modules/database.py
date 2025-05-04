@@ -19,11 +19,6 @@ async def get_db_connection():
         # Attempt to connect to the database
         conn = await asyncpg.connect(**DB_CONFIG)
         yield conn
-    except Exception as e:
-        if f'{e}' == 'syntax error at or near ")"':
-            pass
-        else:
-            print(f"DB Connection error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -202,7 +197,7 @@ async def setup_database():
                 pool_c_trade_direction TEXT DEFAULT NULL, -- 'buy' or 'sell' for pool C (if three-pool route)
                 execution_status TEXT DEFAULT 'pending', -- 'pending', 'executed', 'failed'
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         ''')
 
@@ -218,7 +213,7 @@ async def setup_database():
                 payer_address TEXT NOT NULL,
                 working BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         ''')
 
@@ -226,12 +221,12 @@ async def setup_database():
         await conn.execute('''
             CREATE INDEX IF NOT EXISTS idx_pools_base_quote ON pools (base_token_address, quote_token_address);
         ''')
-        await conn.execute('''
-            CREATE INDEX IF NOT EXISTS idx_two_arbitrage_profit ON two_arbitrage_routes (estimated_profit_native DESC);
-        ''')
-        await conn.execute('''
-            CREATE INDEX IF NOT EXISTS idx_three_arbitrage_profit ON three_arbitrage_routes (estimated_profit_native DESC);
-        ''')
+        # await conn.execute('''
+        #     CREATE INDEX IF NOT EXISTS idx_two_arbitrage_profit ON two_arbitrage_routes (estimated_profit_native DESC);
+        # ''')
+        # await conn.execute('''
+        #     CREATE INDEX IF NOT EXISTS idx_three_arbitrage_profit ON three_arbitrage_routes (estimated_profit_native DESC);
+        # ''')
         await conn.execute('''
             CREATE INDEX IF NOT EXISTS idx_luts_address ON luts (address);
         ''')
