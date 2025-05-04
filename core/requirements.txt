@@ -1,2 +1,9 @@
 requests
 psycopg2
+asyncpg
+redis
+uvloop
+solana
+solders
+jito_py_rpc
+networkx

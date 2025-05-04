@@ -696,14 +696,14 @@ Install solana-arbitrage-raydium-meteora.git using one of the following methods:
 
 **Build from source:**
 
-1. Clone the solana-arbitrage-raydium-meteora.git repository:
+1. Clone the solana-arbitrage-raydium-meteora repository:
 ```sh
 ❯ git clone https://github.com/BAIOGIT/solana-arbitrage-raydium-meteora.git
 ```
 
 2. Navigate to the project directory:
 ```sh
-❯ cd solana-arbitrage-raydium-meteora.git
+❯ cd solana-arbitrage-raydium-meteora
 ```
 
 3. Install the project dependencies:
@@ -727,6 +727,7 @@ Install solana-arbitrage-raydium-meteora.git using one of the following methods:
 
 ```sh
 ❯ pip install -r core/requirements.txt
+❯ cp core/config.default.py config.py
 ```
 
 
