@@ -89,8 +89,8 @@ async def setup_database():
                 status TEXT DEFAULT 'enabled', -- 'enabled', 'disabled', 'skip'
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (base_token_id) REFERENCES tokens (address),
-                FOREIGN KEY (quote_token_id) REFERENCES tokens (address)
+                FOREIGN KEY (base_token_id) REFERENCES tokens (id),
+                FOREIGN KEY (quote_token_id) REFERENCES tokens (id)
             );
         ''')
 
