@@ -78,8 +78,8 @@ async def setup_database():
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS pools (
                 id SERIAL PRIMARY KEY,
-                base_token_address TEXT NOT NULL,
-                quote_token_address TEXT NOT NULL,
+                base_token_id INT NOT NULL,
+                quote_token_id INT NOT NULL,
                 address TEXT UNIQUE NOT NULL,
                 dex TEXT DEFAULT NULL, -- 'raydium', 'meteora'
                 fee REAL DEFAULT 0,
@@ -89,8 +89,8 @@ async def setup_database():
                 status TEXT DEFAULT 'enabled', -- 'enabled', 'disabled', 'skip'
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (base_token_address) REFERENCES tokens (address),
-                FOREIGN KEY (quote_token_address) REFERENCES tokens (address)
+                FOREIGN KEY (base_token_id) REFERENCES tokens (address),
+                FOREIGN KEY (quote_token_id) REFERENCES tokens (address)
             );
         ''')
 
@@ -219,7 +219,7 @@ async def setup_database():
 
         # Indexes for faster querying
         await conn.execute('''
-            CREATE INDEX IF NOT EXISTS idx_pools_base_quote ON pools (base_token_address, quote_token_address);
+            CREATE INDEX IF NOT EXISTS idx_pools_base_quote ON pools (base_token_id, quote_token_id);
         ''')
         # await conn.execute('''
         #     CREATE INDEX IF NOT EXISTS idx_two_arbitrage_profit ON two_arbitrage_routes (estimated_profit_native DESC);
@@ -321,24 +321,24 @@ async def add_token(name, address):
                 updated_at = CURRENT_TIMESTAMP
         ''', name, address, True)
         
-async def add_pool(base_token_address, quote_token_address, address, dex, fee, bin_step, price_native, price_usd):
+async def add_pool(base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd):
     """
     Adds a pool to the database or updates it if it already exists.
     """
     async with get_db_connection() as conn:
         await conn.execute('''
-            INSERT INTO pools (base_token_address, quote_token_address, address, dex, fee, bin_step, price_native, price_usd)
+            INSERT INTO pools (base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (address) DO UPDATE SET
-                base_token_address = EXCLUDED.base_token_address,
-                quote_token_address = EXCLUDED.quote_token_address,
+                base_token_id = EXCLUDED.base_token_id,
+                quote_token_id = EXCLUDED.quote_token_id,
                 dex = EXCLUDED.dex,
                 fee = EXCLUDED.fee,
                 bin_step = EXCLUDED.bin_step,
                 price_native = EXCLUDED.price_native,
                 price_usd = EXCLUDED.price_usd,
                 updated_at = CURRENT_TIMESTAMP
-        ''', base_token_address, quote_token_address, address, dex, fee, bin_step, price_native, price_usd)
+        ''', base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd)
 
 async def get_pools_by_dex(dex):
     """
@@ -348,8 +348,8 @@ async def get_pools_by_dex(dex):
     async with get_db_connection() as conn:
         rows = await conn.fetch('''
             SELECT p.* FROM pools p
-            JOIN tokens t_base ON p.base_token_address = t_base.address
-            JOIN tokens t_quote ON p.quote_token_address = t_quote.address
+            JOIN tokens t_base ON p.base_token_id = t_base.address
+            JOIN tokens t_quote ON p.quote_token_id = t_quote.address
             WHERE p.dex = $1 AND p.status = 'enabled' AND (t_base.tradable = TRUE OR t_quote.tradable = TRUE)
             AND t_quote.name != 'SOL'
         ''', dex)
@@ -362,7 +362,7 @@ async def get_pools_by_dex(dex):
 #     async with get_db_connection() as conn:
 #         rows = await conn.fetch('''
 #             SELECT * FROM pools
-#             WHERE (base_token_address = $1 OR (quote_token_address = $1 AND quote_token_address != 'So11111111111111111111111111111111111111112')) AND dex = $2 AND status = 'enabled'
+#             WHERE (base_token_id = $1 OR (quote_token_id = $1 AND quote_token_id != 'So11111111111111111111111111111111111111112')) AND dex = $2 AND status = 'enabled'
 #         ''', token_address, dex)
 #         return [dict(row) for row in rows]
     
@@ -375,18 +375,19 @@ async def get_pools_by_token(token_address, dex):
     
     async with get_db_connection() as conn:
         rows = await conn.fetch('''
-            SELECT * FROM pools
+            SELECT t_base.address as base_token_address, t_quote.address as quote_token_address, * FROM pools p
+            JOIN tokens t_base ON p.base_token_id = t_base.id
+            JOIN tokens t_quote ON p.quote_token_id = t_quote.id
             WHERE (
-                (base_token_address = $1 AND quote_token_address = $2)
+                (t_base.address = $1 AND t_quote.address = $2)
                 OR 
-                (base_token_address = $2 AND quote_token_address = $1)
+                (t_base.address = $2 AND t_quote.address = $1)
             )
             AND dex = $3
-            AND status = 'enabled'
+            AND p.status = 'enabled'
         ''', token_address, sol_address, dex)
-        
         return [dict(row) for row in rows]
-    
+
 async def get_tradable_tokens():
     """
     Fetch all tradable tokens from the database.

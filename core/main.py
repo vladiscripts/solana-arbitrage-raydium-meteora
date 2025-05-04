@@ -75,7 +75,7 @@ async def scan_pools():
         for token in tokens:
             if token['address'] == SOLANA_PROGRAM:
                 continue
-            pools = await fetch_pools_for_token(token)
+            pools = await fetch_pools_for_token(token, tokens)
             raydium_pools = await fetch_raydium_pools_for_token(token)
             # print(f"Found {len(pools)} pools for {token['address']}, {len(raydium_pools)} on Raydium")
             # logger.info(f"Found {len(pools)} pools for {token['address']}, {len(raydium_pools)} on Raydium")

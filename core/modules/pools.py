@@ -22,10 +22,11 @@ async def fetch_coin_data(pair_address):
                 # logger.error(f"Error fetching Meteora pool {pair_address} data: {response.status}, {await response.text()}")
                 return {}
             
-async def fetch_pools_for_token(token):
+async def fetch_pools_for_token(token, tokens):
     """
     Fetches pools for a given token and adds them to the database.
     """
+    token_id = token['id']
     name = token['name']
     address = token['address']
 
@@ -82,7 +83,16 @@ async def fetch_pools_for_token(token):
                     bin_step = meteora_pool_data.get('bin_step', 100)
 
                 # Add pool to the database
-                await add_pool(base_token_address, quote_token_address, pool_address, dex, Decimal(fee), bin_step, 0, 0)
+                if address == base_token_address:
+                    base_token_id = token_id
+                    # await add_token(pool_name.split('-')[0], mint)
+                    quote_token_id = [t['id'] for t in tokens if t['address']][0]
+
+                elif address == quote_token_address:
+                    quote_token_id = token_id
+                    base_token_id = [t['id'] for t in tokens if t['address']][0]
+
+                await add_pool(base_token_id, quote_token_id, pool_address, dex, Decimal(fee), bin_step, 0, 0)
 
             except Exception as e:
                 print(f"Error adding pool: {e}")
