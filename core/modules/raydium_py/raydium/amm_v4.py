@@ -21,17 +21,17 @@ from spl.token.instructions import (
     get_associated_token_address,
     initialize_account,
 )
-from config import SOLANA_PROGRAM
-from modules.raydium_py.utils.common_utils import confirm_txn, get_token_balance
-from modules.raydium_py.utils.pool_utils import (
+from core.config import WSOL_ADDRESS
+from core.modules.raydium_py.utils.common_utils import confirm_txn, get_token_balance
+from core.modules.raydium_py.utils.pool_utils import (
     AmmV4PoolKeys,
     fetch_amm_v4_pool_keys,
     fetch_amm_v4_pool_keys_from_lut_addresses,
     get_amm_v4_reserves,
     make_amm_v4_swap_instruction
 )
-from modules.raydium_py.config import client, payer_keypair, arb_vault_keypair, arb_payer_keypair, UNIT_BUDGET, UNIT_PRICE
-from modules.raydium_py.raydium.constants import ACCOUNT_LAYOUT_LEN, SOL_DECIMAL, TOKEN_PROGRAM_ID, WSOL
+from core.modules.raydium_py.config import client, payer_keypair, arb_vault_keypair, arb_payer_keypair, UNIT_BUDGET, UNIT_PRICE
+from core.modules.raydium_py.raydium.constants import ACCOUNT_LAYOUT_LEN, SOL_DECIMAL, TOKEN_PROGRAM_ID, WSOL
 
 import logging  # Import logging module
 logger = logging.getLogger(__name__)

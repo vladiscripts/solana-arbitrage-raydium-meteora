@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 import sys
 sys.path.append('./')
-from config import DB_CONFIG, RPC_ENDPOINT, RPC_ENDPOINT_LIST, RPC_ENDPOINT_LIST_ID, redis_client, RESERVES_RAYDIUM, RESERVES_METEORA
-from modules.dlmm.dlmm import DLMM, DLMM_CLIENT
+from core.config import DB_CONFIG, RPC_ENDPOINT, RPC_ENDPOINT_LIST, RPC_ENDPOINT_LIST_ID, redis_client, RESERVES_RAYDIUM, RESERVES_METEORA
+from core.modules.dlmm.dlmm import DLMM, DLMM_CLIENT
 
 from spl.token._layouts import MINT_LAYOUT
 from solders.pubkey import Pubkey

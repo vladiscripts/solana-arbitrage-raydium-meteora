@@ -9,7 +9,7 @@ import pickle
 import logging  # Import logging module
 logger = logging.getLogger(__name__)
 
-from config import SOLANA_PROGRAM, TOKEN_PROGRAM, OPERATOR_WSOL_ATA, USE_JITO, redis_client, RPC_ENDPOINT_LIST, RPC_STATUS, jitoSdk, VAULT_WSOL_ATA
+from config import WSOL_ADDRESS, TOKEN_PROGRAM, OPERATOR_WSOL_ATA, USE_JITO, redis_client, RPC_ENDPOINT_LIST, RPC_STATUS, jitoSdk, VAULT_WSOL_ATA
 # from modules.raydium_py.raydium.amm_v4 import buy_ix
 from modules.raydium_py.raydium.amm_v4 import buy_ix_fixed
 from modules.dlmm.dlmm import DLMM

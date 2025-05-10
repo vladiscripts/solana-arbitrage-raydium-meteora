@@ -22,11 +22,11 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('aiohttp').setLevel(logging.WARNING)
 
-from config import SOLANA_PROGRAM
-from modules.database import add_pool, setup_database, save_new_meteora_pools, add_token, get_tokens
-from modules.meteora.scan import fetch_coin_data, send_alert
-from modules.pools import fetch_pools_for_token, fetch_raydium_pools_for_token
-from modules.routes import find_and_save_two_arbitrage_routes
+from core.config import WSOL_ADDRESS
+from core.modules.database import add_pool, setup_database, save_new_meteora_pools, add_token, get_tokens
+from core.modules.meteora.scan import fetch_coin_data, send_alert
+from core.modules.pools import fetch_pools_for_token, fetch_raydium_pools_for_token
+from core.modules.routes import find_and_save_two_arbitrage_routes
 from scripts.delete_unused_luts import get_and_delete_unused_luts
 from scripts.reset.delete_outdated import reset as reset_outdated
 from scripts.reset.reset_db import reset as reset
@@ -56,7 +56,7 @@ async def scan_new_meteora_pools():
                     if pool_name.split('-')[-1] == 'SOL':
                         # logger.info(f"Adding {pool_name.split('-')[0]}: {mint}")
                         await add_token(pool_name.split('-')[0], mint)
-                        await add_pool(mint, SOLANA_PROGRAM, pool_address, 'meteora', float(fee), None, None, None)
+                        await add_pool(mint, WSOL_ADDRESS, pool_address, 'meteora', float(fee), None, None, None)
 
             sleep_time = 2
             await asyncio.sleep(sleep_time)  # Add a delay to avoid rate limiting
@@ -73,7 +73,7 @@ async def scan_pools():
         tokens = await get_tokens()
         
         for token in tokens:
-            if token['address'] == SOLANA_PROGRAM:
+            if token['address'] == WSOL_ADDRESS:
                 continue
             pools = await fetch_pools_for_token(token, tokens)
             raydium_pools = await fetch_raydium_pools_for_token(token)
