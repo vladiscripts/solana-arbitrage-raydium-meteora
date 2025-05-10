@@ -447,7 +447,7 @@ async def get_pools_by_token(token_address, dex):
     #     dex = [dex]
     # if not pool_dex_filterout:
     #     pool_dex_filterout = []
-    
+
     async with get_db_connection() as conn:
         rows = await conn.fetch('''
             SELECT t_base.address as base_token_address, t_quote.address as quote_token_address, p.* FROM pools p
