@@ -8,7 +8,7 @@ import os
 import logging  # Import logging module
 logger = logging.getLogger(__name__)
 
-from config import RPC_ENDPOINT_LIST, RPC_ENDPOINT_LIST_ID, SOLANA_PROGRAM, VAULT_PRIVATE_KEY, PAYER_PRIVATE_KEY, OPERATOR_PRIVATE_KEY, OPERATOR_WSOL_ATA, VAULT_WSOL_ATA, redis_client, JITO_TIP_ADDRESS
+from config import RPC_ENDPOINT_LIST, RPC_ENDPOINT_LIST_ID, WSOL_ADDRESS, VAULT_PRIVATE_KEY, PAYER_PRIVATE_KEY, OPERATOR_PRIVATE_KEY, OPERATOR_WSOL_ATA, VAULT_WSOL_ATA, redis_client, JITO_TIP_ADDRESS
 from modules.database import get_two_arbitrage_routes, get_lut_addresses_from_route
 from modules.raydium_py.config import client, payer_keypair, UNIT_BUDGET, UNIT_PRICE
 from modules.raydium_py.raydium.constants import ACCOUNT_LAYOUT_LEN, SOL_DECIMAL, TOKEN_PROGRAM_ID, WSOL
@@ -107,7 +107,7 @@ async def setup_cache():
     create_wsol_account_instruction = create_associated_token_account(
         vault.pubkey(),
         operator.pubkey(),
-        Pubkey.from_string(SOLANA_PROGRAM)
+        Pubkey.from_string(WSOL_ADDRESS)
     )
 
     init_wsol_account_instruction = initialize_account(
