@@ -1,4 +1,5 @@
 import struct
+import base64
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -121,11 +122,15 @@ def fetch_amm_v4_pool_keys(pair_address: str) -> Optional[AmmV4PoolKeys]:
    
     try:
         amm_id = Pubkey.from_string(pair_address)
-        amm_data = client.get_account_info_json_parsed(amm_id, commitment=Processed).value.data
-        amm_data_decoded = LIQUIDITY_STATE_LAYOUT_V4.parse(amm_data)
+        amm_data_ = client.get_account_info(amm_id, commitment=Processed)['result']
+        amm_data = amm_data_['value']['data'][0]  # amm_data_['value']['data'][0] if RPC_ENDPOINT_IS_HELIUS else amm_data_['value']['data'][0]
+        d = base64.b64decode(amm_data)
+        amm_data_decoded = LIQUIDITY_STATE_LAYOUT_V4.parse(d)
         marketId = Pubkey.from_bytes(amm_data_decoded.serumMarket)
-        marketInfo = client.get_account_info_json_parsed(marketId, commitment=Processed).value.data
-        market_decoded = MARKET_STATE_LAYOUT_V3.parse(marketInfo)
+        marketInfo_ = client.get_account_info(marketId, commitment=Processed)['result']
+        marketInfo = marketInfo_['value']['data'][0]  # marketInfo_['value']['data'][0] if RPC_ENDPOINT_IS_HELIUS else marketInfo_['value']['data'][0]
+        d = base64.b64decode(marketInfo)
+        market_decoded = MARKET_STATE_LAYOUT_V3.parse(d)
         vault_signer_nonce = market_decoded.vault_signer_nonce
         
         ray_authority_v4=Pubkey.from_string("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1")
