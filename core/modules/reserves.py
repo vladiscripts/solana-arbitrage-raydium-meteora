@@ -46,28 +46,31 @@ async def fetch_token_decimals(mint_address):
     info = client.get_account_info(mint_public_key)
     return MINT_LAYOUT.parse(info.value.data).decimals
 
-async def fetch_raydium_reserves_api(pool_address):
+async def fetch_raydium_reserves_api(pools_addresses):
     """Fetch Raydium pool reserves via API."""
-    url = f"https://api-v3.raydium.io/pools/key/ids?ids={pool_address}"
-    
+    url = f"https://api-v3.raydium.io/pools/key/ids?ids={','.join(set(pools_addresses))}"
     # print(url)
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
-        async with session.get(url) as response:
-            data = await response.json()
-            # print(data)
-            if data.get("success") and isinstance(data.get("data"), list) and data["data"]:
-                pool_data = data["data"][0]
-                return (
-                    pool_data.get("vault", {}).get("A", ""),
-                    pool_data.get("vault", {}).get("B", ""),
-                    pool_data.get("mintA", {}).get("decimals", 9),
-                    pool_data.get("mintB", {}).get("decimals", 9),
-                    pool_data.get("mintA", {}).get("address", ""),
-                    pool_data.get("mintB", {}).get("address", ""),
-                    0.0025,  # Raydium fee
-                )
-    
-    return "", "", 9, 9, "", "", 0.0025  # Default fallback values
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session, session.get(url) as response:
+        data = await response.json()
+        # print(data)
+        # pool_address = {'2QdhepnKRTLjjSqPL1PtKNwqrUkoLee5Gqs8bvZhRdMv', '2baC5JL75NosEr2oLJZ14gbNjWDuUq3ui33ZPLZTgCEA',
+        #                 '2fJJshuibPZouYgewvuZWGVJyhdvWV4XRQ55po3ZbsYz', '3J3qoci7FvKvdeKe2bpC1TxLjtuwAuoBAVVvfS2HgHUx',
+        #                 'J3b6dvheS2Y1cbMtVz5TCWXNegSjJDbUKxdUVDPoqmS7', 'vRjiX6EXCsRxm17DVDynXU7Uw9vSrurWDzmxBtb4Eg3'}
+        # import requests
+        # jp = requests.get(f"https://api-v3.raydium.io/pools/key/ids?ids={','.join(set(pool_address))}").json()
+
+        if data.get("success") and isinstance(data.get("data"), list) and data["data"]:
+            return [(pool.get("id"),
+                     pool.get("vault", {}).get("A"),
+                     pool.get("vault", {}).get("B"),
+                     pool.get("mintA", {}).get("decimals", 9),
+                     pool.get("mintB", {}).get("decimals", 9),
+                     pool.get("mintA", {}).get("address"),
+                     pool.get("mintB", {}).get("address"),
+                     0.0025,  # Raydium fee
+                     ) for pool in data["data"]]
+    return [(address, None, None, 9, 9, None, None, 0.0025) for address in pools_addresses]
+
 
 # async def fetch_meteora_reserves_api(pool_address):
 #     url = f'https://dlmm-api.meteora.ag/pair/{pool_address}'
@@ -87,12 +90,16 @@ async def fetch_raydium_reserves_api(pool_address):
 #                 )
 #             return '', '', 9, 9, '', '', 0.1
         
-async def fetch_meteora_reserves_api(pool_address):
+async def fetch_meteora_reserves_api(pool_address: str):
+    # pools_addresses = {'25WYn7JrXy4EnsX3nvWTc4fUET1beY2jp6CeJCVW7NoT', '2Ch5NM6Me5UpS9QNW2eNNVzFy4A7ZUDjWRcLWuQypHz9',
+    #       '2EPtcRT5ZAr6SmarZnhnQuyG5XQ5T7ier5whWRefHb5Z', '2HJSwnU546FLbHVenh8bP6obbQ6f3BW37MsoSSRGenpK',
+    #       'Hr3byzHKDa7U9MgnfNr9tvRxzvX7fz3sZLgfDgPHGQ15', 'HwEfZWKzMGqa6qgKqWLtsDXbx4bgexw5mQSBQj34asWt',
+    #       'X3dHbjvaYvA1tvyEkb3LmWeCK11GLDe2wpYab64Mu1e', 'uCs4CdnizN9tyeipvdeZ7hYcgACCdvd4fkyJXjFhbsc'}
     try:
         dlmm = DLMM(Pubkey.from_string(pool_address), RPC_ENDPOINT_LIST[RPC_ENDPOINT_LIST_ID])
         # dlmm = dlmm_objects.get(pool_address, None)
         # print(f"DLMM: {dlmm}")
-        return (
+        return (pool_address,
             str(dlmm.token_X.reserve),  # Token B
             str(dlmm.token_Y.reserve),  # Token A
             str(dlmm.token_X.decimal),  # Token B
@@ -105,7 +112,8 @@ async def fetch_meteora_reserves_api(pool_address):
             pass
         else:
             logger.error(f"Fetch Meterora reserves error: {e}")
-        return "", "", 9, 9, "", ""
+        # return None, None, 9, 9, None, None
+        return pool_address, None, None, 9, 9, None, None
 
 # async def fetch_token_account_balance(client, token_account_address):
 #     try:
