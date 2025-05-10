@@ -44,31 +44,37 @@ async def setup_database():
             CREATE TABLE IF NOT EXISTS meteora_pools (
                 address TEXT PRIMARY KEY,
                 name TEXT,
-                mint_x TEXT,
-                mint_y TEXT,
+                mint_x_id INT,
+                mint_y_id INT,
                 apr REAL,
                 apy REAL,
                 current_price REAL,
                 liquidity REAL,
                 trade_volume_24h REAL,
                 fees_24h REAL,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (mint_x_id) REFERENCES tokens (id),
+                FOREIGN KEY (mint_y_id) REFERENCES tokens (id)
             );
         ''')
 
         # Create trigger to remove pools if in list
         await conn.execute(f'''
-        CREATE OR REPLACE FUNCTION clean_meteora_pool_function()
-        RETURNS TRIGGER AS $$
-        BEGIN
-            IF NEW.mint_x IN ('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') 
-                OR NEW.mint_y IN ('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
-                OR NEW.mint_y != 'So11111111111111111111111111111111111111112' THEN
-                DELETE FROM meteora_pools WHERE address = NEW.address;
-            END IF;
-            RETURN NULL;
-        END;
-        $$ LANGUAGE plpgsql;
+            CREATE OR REPLACE FUNCTION clean_meteora_pool_function()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                -- Проверяем условия через внешние ключи
+                IF 
+                    NEW.mint_x = (SELECT id FROM tokens WHERE address IN ('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') LIMIT 1)
+                    OR NEW.mint_y = (SELECT id FROM tokens WHERE address IN ('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') LIMIT 1)
+                    OR NEW.mint_y != (SELECT id FROM tokens WHERE address IN ('So11111111111111111111111111111111111111112') LIMIT 1)
+                THEN
+                    DELETE FROM meteora_pools WHERE address = NEW.address;
+                END IF;
+                
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql;
         ''')
 
         # Create the tokens table
@@ -77,13 +83,22 @@ async def setup_database():
                 id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 address TEXT UNIQUE NOT NULL,
-                status TEXT DEFAULT 'enabled', -- 'enabled', 'disabled', 'skip'
+                status public.pools_status DEFAULT 'enabled',
                 tradable BOOLEAN DEFAULT FALSE,
                 ata TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         ''')
+
+        # Create ENUM types
+        exists = await conn.fetchval("SELECT COUNT(*) FROM pg_type WHERE typname = 'pools_status' AND typtype = 'e';")
+        if not exists:
+            await conn.execute("CREATE TYPE pools_status AS ENUM ('enabled', 'disabled', 'skip');")
+
+        exists = await conn.fetchval("SELECT COUNT(*) FROM pg_type WHERE typname = 'pools_dex' AND typtype = 'e';")
+        if not exists:
+            await conn.execute("CREATE TYPE pools_dex AS ENUM ('raydium', 'meteora', 'orca', 'pumpswap', 'coinchef');")
 
         # Create the pools table
         await conn.execute('''
@@ -92,12 +107,12 @@ async def setup_database():
                 base_token_id INT NOT NULL,
                 quote_token_id INT NOT NULL,
                 address TEXT UNIQUE NOT NULL,
-                dex TEXT DEFAULT NULL, -- 'raydium', 'meteora'
+                dex public.pools_dex DEFAULT NULL,
                 fee REAL DEFAULT 0,
                 bin_step REAL DEFAULT NULL,
                 price_native REAL DEFAULT NULL,
                 price_usd REAL DEFAULT NULL,
-                status TEXT DEFAULT 'enabled', -- 'enabled', 'disabled', 'skip'
+                status public.pools_status DEFAULT 'enabled',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (base_token_id) REFERENCES tokens (id),
@@ -113,8 +128,8 @@ async def setup_database():
                 pool_b_id INT NOT NULL,
                 pool_a_address TEXT NOT NULL,
                 pool_b_address TEXT NOT NULL,
-                pool_a_dex TEXT NOT NULL,
-                pool_b_dex TEXT NOT NULL,
+                pool_a_dex public.pools_dex NOT NULL,
+                pool_b_dex public.pools_dex NOT NULL,
                 pool_a_fee REAL NOT NULL,
                 pool_b_fee REAL NOT NULL,
                 reserve_a_address_pool_a TEXT NOT NULL,
@@ -134,7 +149,7 @@ async def setup_database():
                 reserve_a_pool_b_decimals REAL NOT NULL,
                 reserve_b_pool_b_decimals REAL NOT NULL,
                 lut TEXT DEFAULT NULL,
-                status TEXT DEFAULT 'enabled', -- 'enabled', 'disabled', 'skip'
+                status public.pools_status DEFAULT 'enabled',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (pool_a_id) REFERENCES pools (id),
@@ -184,7 +199,7 @@ async def setup_database():
                 reserve_a_pool_c_decimals REAL NOT NULL,
                 reserve_b_pool_c_decimals REAL NOT NULL,
                 lut TEXT DEFAULT NULL,
-                status TEXT DEFAULT 'enabled', -- 'enabled', 'disabled', 'skip'
+                status public.pools_status DEFAULT 'enabled',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (pool_a_id) REFERENCES pools (id),
@@ -194,19 +209,32 @@ async def setup_database():
             );
         ''')
 
+        # Create ENUM types
+        exists = await conn.fetchval("SELECT COUNT(*) FROM pg_type WHERE typname = 'buy_sell' AND typtype = 'e';")
+        if not exists:
+            await conn.execute("CREATE TYPE buy_sell AS ENUM ('buy', 'sell');")
+
+        exists = await conn.fetchval("SELECT COUNT(*) FROM pg_type WHERE typname = 'route_type' AND typtype = 'e';")
+        if not exists:
+            await conn.execute("CREATE TYPE route_type AS ENUM ('two-pool', 'three-pool');")
+
+        exists = await conn.fetchval("SELECT COUNT(*) FROM pg_type WHERE typname = 'pools_execution_status' AND typtype = 'e';")
+        if not exists:
+            await conn.execute("CREATE TYPE pools_execution_status AS ENUM ('pending', 'executed', 'failed');")
+
         # Create the 3-arbitrage routes table
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS opportunities (
                 id SERIAL PRIMARY KEY,
-                route_type TEXT NOT NULL, -- 'two-pool' or 'three-pool'
+                route_type public.route_type NOT NULL,
                 route_id INT NOT NULL, -- The ID from the respective routes table (two or three-pool)
                 trade_size REAL NOT NULL, -- Optimal trade size
                 estimated_profit_native REAL NOT NULL, -- Profit in the native token
                 estimated_profit_usd REAL NOT NULL, -- Profit in USD
-                pool_a_trade_direction TEXT NOT NULL, -- 'buy' or 'sell' for pool A
-                pool_b_trade_direction TEXT NOT NULL, -- 'buy' or 'sell' for pool B
-                pool_c_trade_direction TEXT DEFAULT NULL, -- 'buy' or 'sell' for pool C (if three-pool route)
-                execution_status TEXT DEFAULT 'pending', -- 'pending', 'executed', 'failed'
+                pool_a_trade_direction public.buy_sell NOT NULL, -- for pool A
+                pool_b_trade_direction public.buy_sell NOT NULL, -- for pool B
+                pool_c_trade_direction public.buy_sell DEFAULT NULL, -- for pool C (if three-pool route)
+                execution_status public.pools_execution_status DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -249,7 +277,7 @@ async def setup_database():
         await add_token('SOL', 'So11111111111111111111111111111111111111112')
         # await add_token('MOODENG', 'ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY')
         # await add_token('SINGULAR', 'G8sGfsSix9FsnQGRnzcxmUy98uNmBcktMNeBNjapump')
-        
+
 async def save_new_meteora_pools(pairs):
     """
     Fetches all tokens from the database.
@@ -258,46 +286,59 @@ async def save_new_meteora_pools(pairs):
     new_pools = []
 
     async with get_db_connection() as conn:
+        token_sol_id = await conn.fetchval("SELECT id FROM tokens WHERE name = 'SOL' LIMIT 1")
+
         for group in pairs.get("groups", []):
             for pair in group.get("pairs", []):
                 if pair['mint_x'].endswith('pump'):
                     # Check if the pool already exists
-                    exists = await conn.fetchval('SELECT 1 FROM meteora_pools WHERE address = $1 OR mint_x = $2', pair['address'], pair['mint_x'])
+                    exists = await conn.fetchval("""
+                                SELECT 1 FROM meteora_pools p
+                                JOIN tokens t_base ON p.mint_x_id = t_base.id
+                                -- JOIN tokens t_quote ON p.mint_y_id = t_quote.id
+                                WHERE p.address = $1 OR t_base.address = $2 """, pair['address'], pair['mint_x'])
 
                     # If not exists, consider it a new pool
-                    if not exists and pair['mint_y'] == 'So11111111111111111111111111111111111111112':
+                    if not exists and pair['mint_y'] == WSOL_ADDRESS:
+                        mint_x_id = await add_token(pair['name'].split('-')[0], pair['mint_x'])
+
                         new_pools.append(pair)
                         # Insert or update the pool
-                        await conn.execute('''
-                            INSERT INTO meteora_pools (address, name, mint_x, mint_y, apr, apy, current_price, liquidity, trade_volume_24h, fees_24h, timestamp)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-                            ON CONFLICT (address) DO UPDATE SET
-                                name = EXCLUDED.name,
-                                mint_x = EXCLUDED.mint_x,
-                                mint_y = EXCLUDED.mint_y,
-                                apr = EXCLUDED.apr,
-                                apy = EXCLUDED.apy,
-                                current_price = EXCLUDED.current_price,
-                                liquidity = EXCLUDED.liquidity,
-                                trade_volume_24h = EXCLUDED.trade_volume_24h,
-                                fees_24h = EXCLUDED.fees_24h,
-                                timestamp = CURRENT_TIMESTAMP
-                        ''', *(
-                            pair['address'],
-                            pair['name'],
-                            pair['mint_x'],
-                            pair['mint_y'],
-                            Decimal(pair.get('apr', 0)),
-                            Decimal(pair.get('apy', 0)),
-                            Decimal(pair.get('current_price', 0)),
-                            Decimal(pair.get('liquidity', 0)),
-                            Decimal(pair.get('trade_volume_24h', 0)),
-                            Decimal(pair.get('fees_24h', 0))
-                        ))
-                        
+                        try:
+                            await conn.execute('''
+                                INSERT INTO meteora_pools (address, name, mint_x_id, mint_y_id, apr, apy, current_price, liquidity, trade_volume_24h, fees_24h, timestamp)
+                                VALUES ($1, $2, 
+                                    $3,  -- (SELECT id FROM tokens WHERE address = $3)
+                                    $4,  -- (SELECT id FROM tokens WHERE address = $4)
+                                    $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+                                ON CONFLICT (address) DO UPDATE SET
+                                    name = EXCLUDED.name,
+                                    mint_x_id = EXCLUDED.mint_x_id,
+                                    mint_y_id = EXCLUDED.mint_y_id,
+                                    apr = EXCLUDED.apr,
+                                    apy = EXCLUDED.apy,
+                                    current_price = EXCLUDED.current_price,
+                                    liquidity = EXCLUDED.liquidity,
+                                    trade_volume_24h = EXCLUDED.trade_volume_24h,
+                                    fees_24h = EXCLUDED.fees_24h,
+                                    timestamp = CURRENT_TIMESTAMP
+                            ''', *(
+                                pair['address'],
+                                pair['name'],
+                                mint_x_id,  # pair['mint_x']
+                                token_sol_id,  # pair['mint_y']
+                                Decimal(pair.get('apr', 0)),
+                                Decimal(pair.get('apy', 0)),
+                                Decimal(pair.get('current_price', 0)),
+                                Decimal(pair.get('liquidity', 0)),
+                                Decimal(pair.get('trade_volume_24h', 0)),
+                                Decimal(pair.get('fees_24h', 0))
+                            ))
+                        except Exception as e:
+                            logger.error(e)
+
                     # else:
                     #     print(f"Pool already exists: {pair['address']}")
-
 
         return new_pools
 
@@ -307,8 +348,8 @@ async def count_meteora_pools(token):
     Count the number of Meteora pools for a specific token.
     """
     async with get_db_connection() as conn:
-        return await conn.fetchval('SELECT COUNT(*) FROM meteora_pools WHERE mint_x = $1 OR mint_y = $1', token)
-        
+        return await conn.fetchval('SELECT COUNT(*) FROM meteora_pools WHERE mint_x_id = $1 OR mint_y_id = $1', token)
+
 async def get_tokens():
     """
     Fetches all tokens from the database.
@@ -324,7 +365,7 @@ async def add_token(name, address):
     Adds a token to the database.
     """
     async with get_db_connection() as conn:
-        await conn.execute('''
+        rid = await conn.fetchval('''
             INSERT INTO tokens (name, address, tradable)
             VALUES ($1, $2, $3)
             ON CONFLICT (address) DO UPDATE SET
@@ -332,17 +373,23 @@ async def add_token(name, address):
                 address = EXCLUDED.address,
                 tradable = EXCLUDED.tradable,
                 updated_at = CURRENT_TIMESTAMP
+            RETURNING id
         ''', name, address, True)
+        return rid
 
 @error_logger
-async def add_pool(base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd):
+# async def add_pool(base_token_address, base_token_name, quote_token_address, quote_token__name, address, dex, fee, bin_step, price_native, price_usd):
+async def add_pool(base_token_address, quote_token_address, address, dex, fee, bin_step, price_native, price_usd, liquidity=None, trade_volume_24h=None):
     """
     Adds a pool to the database or updates it if it already exists.
     """
     async with get_db_connection() as conn:
-        await conn.execute('''
-            INSERT INTO pools (base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        rid = await conn.fetchval('''
+            INSERT INTO pools (base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd, liquidity_k, trade_volume_24h_k)
+                SELECT 
+                    (SELECT id FROM tokens WHERE address = $1 LIMIT 1),
+                    (SELECT id FROM tokens WHERE address = $2 LIMIT 1),
+                    $3, $4, $5, $6, $7, $8, $9, $10
             ON CONFLICT (address) DO UPDATE SET
                 base_token_id = EXCLUDED.base_token_id,
                 quote_token_id = EXCLUDED.quote_token_id,
@@ -351,8 +398,13 @@ async def add_pool(base_token_id, quote_token_id, address, dex, fee, bin_step, p
                 bin_step = EXCLUDED.bin_step,
                 price_native = EXCLUDED.price_native,
                 price_usd = EXCLUDED.price_usd,
+                liquidity_k = EXCLUDED.liquidity_k,
+                trade_volume_24h_k = EXCLUDED.trade_volume_24h_k,
                 updated_at = CURRENT_TIMESTAMP
-        ''', base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd)
+            RETURNING id
+        ''', base_token_address, quote_token_address, address, dex, fee, bin_step, price_native, price_usd,
+                                  liquidity / 1000 if liquidity else None, trade_volume_24h / 1000)
+        return rid
 
 @error_logger
 async def get_pools_by_dex(dex):
@@ -363,8 +415,8 @@ async def get_pools_by_dex(dex):
     async with get_db_connection() as conn:
         rows = await conn.fetch('''
             SELECT p.* FROM pools p
-            JOIN tokens t_base ON p.base_token_id = t_base.address
-            JOIN tokens t_quote ON p.quote_token_id = t_quote.address
+            JOIN tokens t_base ON p.base_token_id = t_base.id
+            JOIN tokens t_quote ON p.quote_token_id = t_quote.id
             WHERE p.dex = $1 AND p.status = 'enabled' AND (t_base.tradable = TRUE OR t_quote.tradable = TRUE)
             AND t_quote.name != 'SOL'
         ''', dex)
@@ -388,10 +440,14 @@ async def get_pools_by_token(token_address, dex):
     or SOL (represented by So11111111111111111111111111111111111111112).
     """
     sol_address = 'So11111111111111111111111111111111111111112'
+    # if isinstance(dex, str):
+    #     dex = [dex]
+    # if not pool_dex_filterout:
+    #     pool_dex_filterout = []
     
     async with get_db_connection() as conn:
         rows = await conn.fetch('''
-            SELECT t_base.address as base_token_address, t_quote.address as quote_token_address, * FROM pools p
+            SELECT t_base.address as base_token_address, t_quote.address as quote_token_address, p.* FROM pools p
             JOIN tokens t_base ON p.base_token_id = t_base.id
             JOIN tokens t_quote ON p.quote_token_id = t_quote.id
             WHERE (
@@ -403,6 +459,30 @@ async def get_pools_by_token(token_address, dex):
             AND p.status = 'enabled'
         ''', token_address, sol_address, dex)
         return [dict(row) for row in rows]
+
+async def get_sol_pools_by_tokens(token_addresses, dex, liquidity_k_le = 0, trade_volume_24h_k_le = 0):
+    """
+    Fetch pool data for a specific token and DEX, but only if one of the token addresses is the given token
+    or SOL (represented by So11111111111111111111111111111111111111112).
+    """
+    sol_address = WSOL_ADDRESS
+    # if isinstance(dex, str):
+    #     dex = [dex]
+    # if not pool_dex_filterout:
+    #     pool_dex_filterout = []
+
+    async with get_db_connection() as conn:
+        rows = await conn.fetch('''
+            SELECT t_base.address as base_token_address, t_quote.address as quote_token_address, p.* FROM pools p
+            JOIN tokens t_base ON p.base_token_id = t_base.id
+            JOIN tokens t_quote ON p.quote_token_id = t_quote.id
+            WHERE dex = $3
+            AND ((t_base.address = ANY($1) AND t_quote.address = $2) OR (t_base.address = $2 AND t_quote.address = ANY($1)))            
+            AND p.status = 'enabled'
+            AND liquidity_k >= $4 AND trade_volume_24h_k > $5
+        ''', token_addresses, sol_address, dex, liquidity_k_le, trade_volume_24h_k_le)
+        return [dict(row) for row in rows]
+
 
 @error_logger
 async def get_tradable_tokens():
