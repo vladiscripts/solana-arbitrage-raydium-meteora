@@ -52,10 +52,12 @@ async def fetch_pools_for_token(token, tokens):
                 # Extract pool data
                 dex = pool['dexId']
                 pool_address = pool['pairAddress']
-                # base_token_name = pool['baseToken']['symbol']
+                base_token_name = pool['baseToken']['symbol']
                 base_token_address = pool['baseToken']['address']
-                # quote_token_name = pool['quoteToken']['symbol']
+                quote_token_name = pool['quoteToken']['symbol']
                 quote_token_address = pool['quoteToken']['address']
+                liquidity = pool.get('liquidity', {}).get('usd')
+                trade_volume_24h = pool['volume']['h24']
                 # price_native = float(pool['priceNative'])
                 # price_usd = float(pool['priceUsd'])
 
@@ -70,8 +72,8 @@ async def fetch_pools_for_token(token, tokens):
                 # print(f"Adding pool: {base_token_name} - {quote_token_name} ({dex})")
                 
                 # # Ensure base_token_address and quote_token_address are inserted into the tokens table
-                # await add_token(base_token_name, base_token_address)
-                # await add_token(quote_token_name, quote_token_address)
+                await add_token(base_token_name, base_token_address)
+                await add_token(quote_token_name, quote_token_address)
 
                 fee = 0
                 bin_step = None
@@ -83,16 +85,16 @@ async def fetch_pools_for_token(token, tokens):
                     bin_step = meteora_pool_data.get('bin_step', 100)
 
                 # Add pool to the database
-                if address == base_token_address:
-                    base_token_id = token_id
-                    # await add_token(pool_name.split('-')[0], mint)
-                    quote_token_id = [t['id'] for t in tokens if t['address']][0]
+                # if address == base_token_address:
+                #     base_token_id = token_id
+                #     # await add_token(pool_name.split('-')[0], mint)
+                #     quote_token_id = [t['id'] for t in tokens if t['address']][0]
+                #
+                # elif address == quote_token_address:
+                #     quote_token_id = token_id
+                #     base_token_id = [t['id'] for t in tokens if t['address']][0]
 
-                elif address == quote_token_address:
-                    quote_token_id = token_id
-                    base_token_id = [t['id'] for t in tokens if t['address']][0]
-
-                await add_pool(base_token_id, quote_token_id, pool_address, dex, Decimal(fee), bin_step, 0, 0)
+                await add_pool(base_token_address, quote_token_address, pool_address, dex, Decimal(fee), bin_step, 0, 0, liquidity, trade_volume_24h)
 
             except Exception as e:
                 print(f"Error adding pool: {e}")
