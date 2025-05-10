@@ -416,7 +416,7 @@ async def find_and_save_two_arbitrage_routes():
                         PAYER_PUBLIC_KEY,
                         OPERATOR_PUBLIC_KEY,
                         TOKEN_PROGRAM,
-                        SOLANA_PROGRAM,
+                        WSOL_ADDRESS,
                         SYSVARRENT_PROGRAM,
                         RAYDIUM_AMM_PROGRAM,
                         METEORA_DLMM_PROGRAM,
@@ -447,7 +447,7 @@ async def find_and_save_two_arbitrage_routes():
 
                         mints = [meteora_lut[0], meteora_lut[1]]
                         for mint in mints:
-                            if mint != 'So11111111111111111111111111111111111111112':
+                            if mint != WSOL_ADDRESS:
                                 # Create ATA
                                 txid_ata, ata = await create_associated_token_account_async(mint)
 
@@ -531,7 +531,7 @@ async def find_and_save_two_arbitrage_routes():
             if str_e.find("The node") != -1 and str_e.find("is not in the digraph") != -1:
                 # Extract the node from the error message
                 node = str_e.split("The node ")[1].split(" is not in the digraph.")[0]
-                if node != SOLANA_PROGRAM:
+                if node != WSOL_ADDRESS:
                     logger.error(f"Node not in digraph error: {e}")
                     logger.error(f"Setting token not in the digraph: {node} to non-tradable")
                     # Update the token to tradable = False
