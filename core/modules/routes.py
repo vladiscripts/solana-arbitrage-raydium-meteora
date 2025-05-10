@@ -525,21 +525,21 @@ async def find_and_save_two_arbitrage_routes():
                     await asyncio.sleep(0.5)  # Add a delay to avoid rate limiting
             print('Step 6: Detect unique routes', time.time() - t3, 'сек')
 
-        except Exception as e:
-            # Find if error matches: "The node {mint} is not in the digraph."
-            str_e = str(e)
-            if str_e.find("The node") != -1 and str_e.find("is not in the digraph") != -1:
-                # Extract the node from the error message
-                node = str_e.split("The node ")[1].split(" is not in the digraph.")[0]
-                if node != WSOL_ADDRESS:
-                    logger.error(f"Node not in digraph error: {e}")
-                    logger.error(f"Setting token not in the digraph: {node} to non-tradable")
-                    # Update the token to tradable = False
-                    await conn.execute('''
-                        UPDATE tokens
-                        SET tradable = FALSE
-                        WHERE address = $1
-                    ''', node)
-            else:
-                logger.error(f"Route edge error: {e}", exc_info=True)
-            # return None
+    except Exception as e:
+        # Find if error matches: "The node {mint} is not in the digraph."
+        str_e = str(e)
+        if str_e.find("The node") != -1 and str_e.find("is not in the digraph") != -1:
+            # Extract the node from the error message
+            node = str_e.split("The node ")[1].split(" is not in the digraph.")[0]
+            if node != WSOL_ADDRESS:
+                logger.error(f"Node not in digraph error: {e}")
+                logger.error(f"Setting token not in the digraph: {node} to non-tradable")
+                # Update the token to tradable = False
+                await conn.execute('''
+                    UPDATE tokens
+                    SET tradable = FALSE
+                    WHERE address = $1
+                ''', node)
+        else:
+            logger.error(f"Route edge error: {e}", exc_info=True)
+        # return None
