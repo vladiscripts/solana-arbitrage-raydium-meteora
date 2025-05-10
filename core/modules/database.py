@@ -350,6 +350,8 @@ async def count_meteora_pools(token):
     async with get_db_connection() as conn:
         return await conn.fetchval('SELECT COUNT(*) FROM meteora_pools WHERE mint_x_id = $1 OR mint_y_id = $1', token)
 
+
+@error_logger
 async def get_tokens():
     """
     Fetches all tokens from the database.
@@ -422,6 +424,7 @@ async def get_pools_by_dex(dex):
         ''', dex)
         return [dict(row) for row in rows]
 
+# @error_logger_decorator
 # async def get_pools_by_token(token_address, dex):
 #     """
 #     Fetch pool data for a specific token and DEX
@@ -460,6 +463,8 @@ async def get_pools_by_token(token_address, dex):
         ''', token_address, sol_address, dex)
         return [dict(row) for row in rows]
 
+
+@error_logger
 async def get_sol_pools_by_tokens(token_addresses, dex, liquidity_k_le = 0, trade_volume_24h_k_le = 0):
     """
     Fetch pool data for a specific token and DEX, but only if one of the token addresses is the given token
