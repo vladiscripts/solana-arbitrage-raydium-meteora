@@ -11,6 +11,16 @@ logger = logging.getLogger(__name__)
 
 from config import DB_CONFIG, MIN_METEORA_FEE, WSOL_ADDRESS
 
+
+def error_logger(func):
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            print(e)
+            logger.error(f"Error in {func.__name__}: {e}")
+    return wrapper
+
 # Asynchronous context manager for handling database connections
 @asynccontextmanager
 async def get_db_connection():
@@ -23,6 +33,7 @@ async def get_db_connection():
         if conn:
             await conn.close()
 
+@error_logger
 async def setup_database():
     """
     Set up the PostgreSQL database with the necessary tables.
@@ -290,6 +301,7 @@ async def save_new_meteora_pools(pairs):
 
         return new_pools
 
+@error_logger
 async def count_meteora_pools(token):
     """
     Count the number of Meteora pools for a specific token.
@@ -306,6 +318,7 @@ async def get_tokens():
         rows = await conn.fetch('SELECT * FROM tokens WHERE tradable = TRUE')
         return [dict(row) for row in rows]
 
+@error_logger
 async def add_token(name, address):
     """
     Adds a token to the database.
@@ -320,7 +333,8 @@ async def add_token(name, address):
                 tradable = EXCLUDED.tradable,
                 updated_at = CURRENT_TIMESTAMP
         ''', name, address, True)
-        
+
+@error_logger
 async def add_pool(base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd):
     """
     Adds a pool to the database or updates it if it already exists.
@@ -340,6 +354,7 @@ async def add_pool(base_token_id, quote_token_id, address, dex, fee, bin_step, p
                 updated_at = CURRENT_TIMESTAMP
         ''', base_token_id, quote_token_id, address, dex, fee, bin_step, price_native, price_usd)
 
+@error_logger
 async def get_pools_by_dex(dex):
     """
     Fetch pool data for a specific DEX where either the base token or quote token is tradable,
@@ -365,7 +380,8 @@ async def get_pools_by_dex(dex):
 #             WHERE (base_token_id = $1 OR (quote_token_id = $1 AND quote_token_id != 'So11111111111111111111111111111111111111112')) AND dex = $2 AND status = 'enabled'
 #         ''', token_address, dex)
 #         return [dict(row) for row in rows]
-    
+
+@error_logger
 async def get_pools_by_token(token_address, dex):
     """
     Fetch pool data for a specific token and DEX, but only if one of the token addresses is the given token
@@ -388,6 +404,7 @@ async def get_pools_by_token(token_address, dex):
         ''', token_address, sol_address, dex)
         return [dict(row) for row in rows]
 
+@error_logger
 async def get_tradable_tokens():
     """
     Fetch all tradable tokens from the database.
@@ -396,6 +413,7 @@ async def get_tradable_tokens():
         rows = await conn.fetch('SELECT * FROM tokens WHERE tradable = TRUE')
         return [dict(row) for row in rows]
 
+@error_logger
 async def get_two_arbitrage_routes():
     """
     Fetch all arbitrage routes from the database where at least one tradable token is involved.
@@ -492,7 +510,8 @@ async def get_two_arbitrage_routes():
         logger.info(f"Filtered {len(unique_pair_routes)} arbitrage routes with at least 2% Meteora fee.")
         print(f"Filtered {len(unique_pair_routes)} arbitrage routes with at least 2% Meteora fee.")
         return unique_pair_routes
-    
+
+@error_logger
 async def get_tradable_two_arbitrage_routes():
     """
     Fetch all arbitrage routes from the database where at least one tradable token is involved.
@@ -572,7 +591,8 @@ async def get_tradable_two_arbitrage_routes():
         logger.info(f"Filtered {len(filtered_rows)} arbitrage routes with at least 2% Meteora fee.")
         print(f"Filtered {len(filtered_rows)} arbitrage routes with at least 2% Meteora fee.")
         return filtered_rows
-      
+
+@error_logger
 async def update_two_arbitrage_routes(route_id, reserve_a_pool_a, reserve_b_pool_a, reserve_a_pool_b, reserve_b_pool_b):
     """
     Update reserves for a specific arbitrage route in the database.
@@ -614,6 +634,7 @@ async def update_two_arbitrage_routes(route_id, reserve_a_pool_a, reserve_b_pool
             print(f"Failed to update route ID {route_id}: {e}")
             return False
 
+@error_logger
 async def update_two_arbitrage_route_status(route_id, status):
     """
     Update the status of a specific arbitrage route in the database.
@@ -640,7 +661,8 @@ async def update_two_arbitrage_route_status(route_id, status):
             logger.error(f"Failed to update status for route ID {route_id}: {e}")
             # print(f"Failed to update status for route ID {route_id}: {e}")
             return False
-          
+
+@error_logger
 async def get_lut_addresses_from_route(lut):
     """
     Fetch the LUT addresses for a specific LUT address from the database.
@@ -660,6 +682,7 @@ async def get_lut_addresses_from_route(lut):
 
         return lut, lut_addresses
 
+@error_logger
 async def get_ata_for_token(token_address):
     """
     Fetch the ATA address for a specific token from the database.
