@@ -39,6 +39,7 @@ next-env.d.ts
 /db
 /core/env
 /core/config.py
+/core/app.log
 
 /rust-core/.env*
 /rust-core/src/_backup
