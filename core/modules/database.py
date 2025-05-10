@@ -9,7 +9,7 @@ import json
 import logging  # Import logging module
 logger = logging.getLogger(__name__)
 
-from config import DB_CONFIG, MIN_METEORA_FEE, WSOL_ADDRESS
+from core.config import DB_CONFIG, MIN_METEORA_FEE, WSOL_ADDRESS
 
 
 def error_logger(func):
