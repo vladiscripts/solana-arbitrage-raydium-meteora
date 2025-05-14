@@ -22,7 +22,7 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('aiohttp').setLevel(logging.WARNING)
 
-from core.config import WSOL_ADDRESS
+from core.config import SOL_MINT
 from core.modules.database import add_pool, setup_database, save_new_meteora_pools, add_token, get_tokens
 from core.modules.meteora.scan import fetch_coin_data, send_alert
 from core.modules.pools import fetch_pools_for_token, fetch_raydium_pools_for_token
@@ -56,7 +56,7 @@ async def scan_new_meteora_pools():
                     if pool_name.split('-')[-1] == 'SOL':
                         # logger.info(f"Adding {pool_name.split('-')[0]}: {mint}")
                         await add_token(pool_name.split('-')[0], mint)
-                        await add_pool(mint, WSOL_ADDRESS, pool_address, 'meteora', float(fee), None, None, None)
+                        await add_pool(mint, SOL_MINT, pool_address, 'meteora', float(fee), None, None, None)
 
             sleep_time = 2
             await asyncio.sleep(sleep_time)  # Add a delay to avoid rate limiting
@@ -73,7 +73,7 @@ async def scan_pools():
         tokens = await get_tokens()
         
         for token in tokens:
-            if token['address'] == WSOL_ADDRESS:
+            if token['address'] == SOL_MINT:
                 continue
             pools = await fetch_pools_for_token(token, tokens)
             raydium_pools = await fetch_raydium_pools_for_token(token)

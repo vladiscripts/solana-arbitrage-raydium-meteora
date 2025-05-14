@@ -6,7 +6,7 @@ executor = ThreadPoolExecutor(max_workers=10)
 import logging  # Import logging module
 logger = logging.getLogger(__name__)
 
-from core.config import WSOL_ADDRESS
+from core.config import SOL_MINT
 from core.modules.database import *
 # from modules.raydium_py.utils.api import get_pool_info_by_id
 
@@ -61,7 +61,7 @@ async def fetch_pools_for_token(token, tokens):
                 # price_native = float(pool['priceNative'])
                 # price_usd = float(pool['priceUsd'])
 
-                if base_token_address != WSOL_ADDRESS and quote_token_address != WSOL_ADDRESS:
+                if base_token_address != SOL_MINT and quote_token_address != SOL_MINT:
                     # print(f"Skipping pool with base token address: {base_token_address} and quote token address: {quote_token_address}")
                     continue
                 
@@ -145,7 +145,7 @@ async def fetch_raydium_pools_for_token(token):
                 # price_native = float(pool['price'])
                 # price_usd = float(pool['priceUsd']) # Not available in the API response
 
-                if base_token_address != WSOL_ADDRESS and quote_token_address != WSOL_ADDRESS:
+                if base_token_address != SOL_MINT and quote_token_address != SOL_MINT:
                     # print(f"Skipping pool with base token address: {base_token_address} and quote token address: {quote_token_address}")
                     continue
 

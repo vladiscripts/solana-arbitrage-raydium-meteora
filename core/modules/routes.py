@@ -14,7 +14,7 @@ log_handler = logging.StreamHandler()
 log_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
 logger.addHandler(log_handler)
 
-from core.config import redis_client, MIN_METEORA_FEE, VAULT_PUBLIC_KEY, PAYER_PUBLIC_KEY, OPERATOR_PUBLIC_KEY, TOKEN_PROGRAM, WSOL_ADDRESS, SYSVARRENT_PROGRAM, RAYDIUM_AMM_PROGRAM, METEORA_DLMM_PROGRAM, SERUM_OPENBOOK_PROGRAM, JITO_TIP_ADDRESS
+from core.config import redis_client, MIN_METEORA_FEE, VAULT_PUBLIC_KEY, PAYER_PUBLIC_KEY, OPERATOR_PUBLIC_KEY, TOKEN_PROGRAM, SOL_MINT, SYSVARRENT_PROGRAM, RAYDIUM_AMM_PROGRAM, METEORA_DLMM_PROGRAM, SERUM_OPENBOOK_PROGRAM, JITO_TIP_ADDRESS
 from core.modules.database import get_db_connection, get_pools_by_token, get_sol_pools_by_tokens, get_tradable_tokens, update_two_arbitrage_route_status
 from core.modules.reserves import fetch_raydium_reserves_api, fetch_meteora_reserves_api
 from core.modules.ata import create_associated_token_account_async
@@ -416,7 +416,7 @@ async def find_and_save_two_arbitrage_routes():
                         PAYER_PUBLIC_KEY,
                         OPERATOR_PUBLIC_KEY,
                         TOKEN_PROGRAM,
-                        WSOL_ADDRESS,
+                        SOL_MINT,
                         SYSVARRENT_PROGRAM,
                         RAYDIUM_AMM_PROGRAM,
                         METEORA_DLMM_PROGRAM,
@@ -447,7 +447,7 @@ async def find_and_save_two_arbitrage_routes():
 
                         mints = [meteora_lut[0], meteora_lut[1]]
                         for mint in mints:
-                            if mint != WSOL_ADDRESS:
+                            if mint != SOL_MINT:
                                 # Create ATA
                                 txid_ata, ata = await create_associated_token_account_async(mint)
 
@@ -531,7 +531,7 @@ async def find_and_save_two_arbitrage_routes():
         if str_e.find("The node") != -1 and str_e.find("is not in the digraph") != -1:
             # Extract the node from the error message
             node = str_e.split("The node ")[1].split(" is not in the digraph.")[0]
-            if node != WSOL_ADDRESS:
+            if node != SOL_MINT:
                 logger.error(f"Node not in digraph error: {e}")
                 logger.error(f"Setting token not in the digraph: {node} to non-tradable")
                 # Update the token to tradable = False

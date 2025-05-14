@@ -7,7 +7,7 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 import sys
 sys.path.append('./')
-from core.config import DB_CONFIG, WSOL_ADDRESS
+from core.config import DB_CONFIG, SOL_MINT
 from core.modules.database import add_token, add_pool
 
 # Asynchronous context manager for handling database connections
@@ -52,7 +52,7 @@ async def main():
 	await set_tradable_token(name)
 	print(f"Added token {name} with mint {mint} to database.")
 	
-	await add_pool(mint, WSOL_ADDRESS, pool_address, dex, float(fee), None, None, None)
+	await add_pool(mint, SOL_MINT, pool_address, dex, float(fee), None, None, None)
 	print(f"Added pool {name} with mint {mint} and pool address {pool_address} to database.")
 
 asyncio.run(main())

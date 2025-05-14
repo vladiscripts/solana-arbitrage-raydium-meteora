@@ -9,7 +9,7 @@ import json
 import logging  # Import logging module
 logger = logging.getLogger(__name__)
 
-from core.config import DB_CONFIG, MIN_METEORA_FEE, WSOL_ADDRESS
+from core.config import DB_CONFIG, MIN_METEORA_FEE, SOL_MINT
 
 
 def error_logger(func):
@@ -299,7 +299,7 @@ async def save_new_meteora_pools(pairs):
                                 WHERE p.address = $1 OR t_base.address = $2 """, pair['address'], pair['mint_x'])
 
                     # If not exists, consider it a new pool
-                    if not exists and pair['mint_y'] == WSOL_ADDRESS:
+                    if not exists and pair['mint_y'] == SOL_MINT:
                         mint_x_id = await add_token(pair['name'].split('-')[0], pair['mint_x'])
 
                         new_pools.append(pair)
@@ -470,7 +470,7 @@ async def get_sol_pools_by_tokens(token_addresses, dex, liquidity_k_le = 0, trad
     Fetch pool data for a specific token and DEX, but only if one of the token addresses is the given token
     or SOL (represented by So11111111111111111111111111111111111111112).
     """
-    sol_address = WSOL_ADDRESS
+    sol_address = SOL_MINT
     # if isinstance(dex, str):
     #     dex = [dex]
     # if not pool_dex_filterout:

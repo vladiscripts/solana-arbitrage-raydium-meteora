@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 import sys
 sys.path.append('./')
-from core.config import WSOL_ADDRESS, redis_client  # Assuming you already have Redis client in config
+from core.config import SOL_MINT, redis_client  # Assuming you already have Redis client in config
 from core.modules.database import add_pool, add_token, count_meteora_pools
 from core.modules.pools import fetch_pools_for_token
 
@@ -70,7 +70,7 @@ async def add_filtered_meteora_pools():
     for pool in filtered_pools:
         print(f"New pool detected for mint {pool['mint_x']}: {pool['name']} at address {pool['address']}. Base fee: {pool['base_fee_percentage']}%. Trade volume: {pool['trade_volume_24h']}. Fees 24h: {pool['fees_24h']}")
         await add_token(pool['name'].split('-')[0], pool['mint_x'])
-        await add_pool(pool['mint_x'], WSOL_ADDRESS, pool['address'], 'meteora', Decimal(pool['base_fee_percentage']), None, None, None)
+        await add_pool(pool['mint_x'], SOL_MINT, pool['address'], 'meteora', Decimal(pool['base_fee_percentage']), None, None, None)
 
         # await fetch_pools_for_token({"name": pool['name'].split('-')[0], "address": pool['mint_x']})
         

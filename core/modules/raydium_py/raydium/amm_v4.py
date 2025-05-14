@@ -21,7 +21,7 @@ from spl.token.instructions import (
     get_associated_token_address,
     initialize_account,
 )
-from core.config import WSOL_ADDRESS
+from core.config import SOL_MINT
 from core.modules.raydium_py.utils.common_utils import confirm_txn, get_token_balance
 from core.modules.raydium_py.utils.pool_utils import (
     AmmV4PoolKeys,
