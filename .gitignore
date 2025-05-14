@@ -36,10 +36,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# private settings
+/core/config.py
+
+# logs, env
 /db
 /core/env
-/core/config.py
 /core/app.log
+.idea/
+.vscode/
 
 /rust-core/.env*
 /rust-core/src/_backup
