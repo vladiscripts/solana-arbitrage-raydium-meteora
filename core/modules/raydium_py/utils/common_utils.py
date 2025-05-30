@@ -4,7 +4,7 @@ from solana.rpc.commitment import Confirmed, Processed
 from solana.rpc.types import TokenAccountOpts
 from solders.signature import Signature #type: ignore
 from solders.pubkey import Pubkey  # type: ignore
-from modules.raydium_py.config import client, payer_keypair
+from core.modules.raydium_py import client, payer_keypair
 
 def get_token_balance(mint_str: str) -> float | None:
 
