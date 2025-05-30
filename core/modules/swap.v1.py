@@ -7,10 +7,10 @@ import pickle
 import logging  # Import logging module
 logger = logging.getLogger(__name__)
 
-from config import OPERATOR_WSOL_ATA, redis_client, RPC_ENDPOINT_LIST, RPC_STATUS
+from core.config import OPERATOR_WSOL_ATA, redis_client, RPC_ENDPOINT_LIST, RPC_STATUS
 # from modules.raydium_py.raydium.amm_v4 import buy_ix
-from modules.raydium_py.raydium.amm_v4 import buy_ix_fixed
-from modules.dlmm.dlmm import DLMM
+from core.modules.raydium_py.raydium.amm_v4 import buy_ix_fixed
+from core.modules.dlmm.dlmm import DLMM
 
 from solana.transaction import Transaction
 from solders.pubkey import Pubkey
